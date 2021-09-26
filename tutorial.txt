@@ -1,0 +1,2 @@
+1. Criar namespace airflow -> kubectl create namespace airflow
+    deploy airflow

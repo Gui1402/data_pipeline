@@ -1,0 +1,1 @@
+eksctl scale nodegroup --cluster datapipe -r us-east-2 --nodes 5 --nodes-min 3 --nodes-max 6 k8s
