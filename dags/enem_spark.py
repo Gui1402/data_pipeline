@@ -25,7 +25,7 @@ def trigger_crawler_final_func():
 
 def download_data() -> None:
 
-    os.makedirs('tmp/enade', exist_ok=True) ## if exists just pass
+    os.makedirs('/tmp/enade', exist_ok=True) ## if exists just pass
     url = 'https://download.inep.gov.br/microdados/Enade_Microdados/microdados_Enade_2017_portal_2018.10.09.zip'
     ## do download content
     print('\nDownloading files ...')
