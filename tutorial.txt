@@ -1,3 +1,12 @@
 1. Criar namespace airflow -> kubectl create namespace airflow
-    deploy airflow
+    -deploy airflow
         helm install airflow apache-airflow/airflow -f kubernetes/airflow/myvalues.yml -n airflow
+    
+    -Mudar a senha do airflow
+    -Cadastrar variaveis de ambiente aws_access_key_id e aws_secret_access_key
+
+    Criar conectores aws e kubernetes
+
+
+    Role Binding
+        kubectl apply -f kubernetes/airflow/rolebinding_for_airflow.yaml -n airflow
