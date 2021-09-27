@@ -19,11 +19,9 @@ glue = boto3.client('glue', region_name='us-east-2',
 
 from airflow.utils.dates import days_ago
 
-def trigger_crawler_inscricao_func():
-        glue.start_crawler(Name='enem_anon_crawler')
 
 def trigger_crawler_final_func():
-        glue.start_crawler(Name='enem_uf_final_crawler')
+        glue.start_crawler(Name='enade_table')
 
 def download_data() -> None:
 
@@ -72,7 +70,7 @@ with DAG(
     schedule_interval="0 */2 * * *",
     start_date=days_ago(1),
     catchup=False,
-    tags=['spark', 'kubernetes', 'batch', 'enem'],
+    tags=['spark', 'kubernetes', 'batch', 'enade'],
 ) as dag:
 
     download_data = PythonOperator(
@@ -86,13 +84,13 @@ with DAG(
         op_kwargs={
             'file_name': 'enade/3.DADOS/MICRODADOS_ENADE_2017.txt',
             'bucket': 's3://bootcamp-igti-gui-enade',
-            'object_name': 'raw/year=2017/enade.csv'}
+            'object_name': 'raw/enade/year=2017/enade.csv'}
     )
 
     converte_parquet = SparkKubernetesOperator(
         task_id='converte_parquet',
         namespace="airflow",
-        application_file="enem_converte_parquet.yaml",
+        application_file="enade-converte-parquet.yaml",
         kubernetes_conn_id="kubernetes_default",
         do_xcom_push=True,
     )
@@ -104,97 +102,12 @@ with DAG(
         kubernetes_conn_id="kubernetes_default",
     )
 
-    anonimiza_inscricao = SparkKubernetesOperator(
-        task_id='anonimiza_inscricao',
-        namespace="airflow",
-        application_file="enem_anonimiza_inscricao.yaml",
-        kubernetes_conn_id="kubernetes_default",
-        do_xcom_push=True,
-    )
-
-    anonimiza_inscricao_monitor = SparkKubernetesSensor(
-        task_id='anonimiza_inscricao_monitor',
-        namespace="airflow",
-        application_name="{{ task_instance.xcom_pull(task_ids='anonimiza_inscricao')['metadata']['name'] }}",
-        kubernetes_conn_id="kubernetes_default",
-    )
-
-    trigger_crawler_inscricao = PythonOperator(
-        task_id='trigger_crawler_inscricao',
-        python_callable=trigger_crawler_inscricao_func,
-    )
-
-    agrega_idade = SparkKubernetesOperator(
-        task_id='agrega_idade',
-        namespace="airflow",
-        application_file="enem_agrega_idade.yaml",
-        kubernetes_conn_id="kubernetes_default",
-        do_xcom_push=True,
-    )
-
-    agrega_idade_monitor = SparkKubernetesSensor(
-        task_id='agrega_idade_monitor',
-        namespace="airflow",
-        application_name="{{ task_instance.xcom_pull(task_ids='agrega_idade')['metadata']['name'] }}",
-        kubernetes_conn_id="kubernetes_default",
-    )
-
-    agrega_sexo = SparkKubernetesOperator(
-        task_id='agrega_sexo',
-        namespace="airflow",
-        application_file="enem_agrega_sexo.yaml",
-        kubernetes_conn_id="kubernetes_default",
-        do_xcom_push=True,
-    )
-
-    agrega_sexo_monitor = SparkKubernetesSensor(
-        task_id='agrega_sexo_monitor',
-        namespace="airflow",
-        application_name="{{ task_instance.xcom_pull(task_ids='agrega_sexo')['metadata']['name'] }}",
-        kubernetes_conn_id="kubernetes_default",
-    )
-
-    agrega_notas = SparkKubernetesOperator(
-        task_id='agrega_notas',
-        namespace="airflow",
-        application_file="enem_agrega_notas.yaml",
-        kubernetes_conn_id="kubernetes_default",
-        do_xcom_push=True,
-    )
-
-    agrega_notas_monitor = SparkKubernetesSensor(
-        task_id='agrega_notas_monitor',
-        namespace="airflow",
-        application_name="{{ task_instance.xcom_pull(task_ids='agrega_notas')['metadata']['name'] }}",
-        kubernetes_conn_id="kubernetes_default",
-    )
-
-    join_final = SparkKubernetesOperator(
-        task_id='join_final',
-        namespace="airflow",
-        application_file="enem_join_final.yaml",
-        kubernetes_conn_id="kubernetes_default",
-        do_xcom_push=True,
-    )
-
-    join_final_monitor = SparkKubernetesSensor(
-        task_id='join_final_monitor',
-        namespace="airflow",
-        application_name="{{ task_instance.xcom_pull(task_ids='join_final')['metadata']['name'] }}",
-        kubernetes_conn_id="kubernetes_default",
-    )
-
-    trigger_crawler_final = PythonOperator(
-        task_id='trigger_crawler_final',
+    trigger_crawler_enade = PythonOperator(
+        task_id='trigger_crawler_enade',
         python_callable=trigger_crawler_final_func,
     )
 
-download_data >> upload_file >> converte_parquet >> converte_parquet_monitor >> anonimiza_inscricao >> anonimiza_inscricao_monitor
-anonimiza_inscricao_monitor >> trigger_crawler_inscricao
-converte_parquet_monitor >> agrega_idade >> agrega_idade_monitor
-converte_parquet_monitor >> agrega_sexo >> agrega_sexo_monitor
-converte_parquet_monitor >> agrega_notas >> agrega_notas_monitor
-[agrega_idade_monitor, agrega_sexo_monitor, agrega_notas_monitor] >> join_final >> join_final_monitor
-join_final_monitor >> trigger_crawler_final
-[agrega_idade_monitor, agrega_notas_monitor] >> agrega_sexo
-[agrega_idade_monitor, agrega_notas_monitor] >> anonimiza_inscricao
+    
+
+download_data >> upload_file >> converte_parquet >> converte_parquet_monitor
+converte_parquet_monitor >> trigger_crawler_enade
