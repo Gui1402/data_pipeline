@@ -92,7 +92,7 @@ with DAG(
         python_callable=upload_file,
         op_kwargs={
             'file_name': './enade/3.DADOS/MICRODADOS_ENADE_2017.txt',
-            'bucket': 's3://bootcamp-igti-gui-enade',
+            'bucket': 'bootcamp-igti-gui-enade',
             'object_name': 'raw/enade/year=2017/enade.csv'}
     )
 
