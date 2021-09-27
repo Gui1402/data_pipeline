@@ -25,13 +25,13 @@ def trigger_crawler_final_func():
 
 def download_data() -> None:
 
-    os.makedirs('/tmp/enade', exist_ok=True) ## if exists just pass
+    os.makedirs('./enade', exist_ok=True) ## if exists just pass
     url = 'https://download.inep.gov.br/microdados/Enade_Microdados/microdados_Enade_2017_portal_2018.10.09.zip'
     ## do download content
     print('\nDownloading files ...')
     file_bytes = BytesIO(requests.get(url).content)
     myzip = zipfile.ZipFile(file_bytes) ## python understand file as zip
-    myzip.extractall('tmp/enade')
+    myzip.extractall('./enade')
     print('\nDone')
 
 
@@ -82,7 +82,7 @@ with DAG(
         task_id='upload_s3',
         python_callable=upload_file,
         op_kwargs={
-            'file_name': '/tmp/enade/3.DADOS/MICRODADOS_ENADE_2017.txt',
+            'file_name': './enade/3.DADOS/MICRODADOS_ENADE_2017.txt',
             'bucket': 's3://bootcamp-igti-gui-enade',
             'object_name': 'raw/enade/year=2017/enade.csv'}
     )
