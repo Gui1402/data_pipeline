@@ -44,6 +44,15 @@ def upload_file(file_name, bucket, object_name=None):
     :return: True if file was uploaded, else False
     """
 
+    os.makedirs('./enade', exist_ok=True) ## if exists just pass
+    url = 'https://download.inep.gov.br/microdados/Enade_Microdados/microdados_Enade_2017_portal_2018.10.09.zip'
+    ## do download content
+    print('\nDownloading files ...')
+    file_bytes = BytesIO(requests.get(url).content)
+    myzip = zipfile.ZipFile(file_bytes) ## python understand file as zip
+    myzip.extractall('./enade')
+    print('\nDone\n')
+    print(os.listdir())
     # If S3 object_name was not specified, use file_name
     if object_name is None:
         object_name = os.path.basename(file_name)
@@ -73,10 +82,10 @@ with DAG(
     tags=['spark', 'kubernetes', 'batch', 'enade'],
 ) as dag:
 
-    download_data = PythonOperator(
-        task_id='download_enade',
-        python_callable=download_data
-    )
+    # download_data = PythonOperator(
+    #     task_id='download_enade',
+    #     python_callable=download_data
+    # )
 
     upload_file = PythonOperator(
         task_id='upload_s3',
@@ -109,5 +118,5 @@ with DAG(
 
     
 
-download_data >> upload_file >> converte_parquet >> converte_parquet_monitor
+upload_file >> converte_parquet >> converte_parquet_monitor
 converte_parquet_monitor >> trigger_crawler_enade
